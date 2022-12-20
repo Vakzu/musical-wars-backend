@@ -108,7 +108,9 @@
 <div>
     <h1>Hello, ${user.name}</h1>
     <h3>Your current balance: <span id="balance">${user.balance?string.computer}</span></h3>
-    <a href="/lobby/create">Create lobby</a>
+    <form action="/lobby/create" method="POST">
+        <button class="btn btn-primary" type="submit">Create lobby</button>
+    </form>
 </div>
 
 <div style="display: flex; justify-content: center">

@@ -25,7 +25,7 @@ CREATE TABLE "song"
 CREATE TABLE "user"
 (
     "id"            serial PRIMARY KEY,
-    "name"          varchar(50)  NOT NULL,
+    "name"          varchar(50)  UNIQUE NOT NULL,
     "is_online"     boolean      NOT NULL,
     "balance"       integer      NOT NULL CHECK ("balance" >= 0) DEFAULT 1000,
     "password_hash" varchar(255) NOT NULL

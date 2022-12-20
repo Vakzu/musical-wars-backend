@@ -97,6 +97,9 @@
             switch (messageOutput.type) {
                 case "JOIN": addUserToLobby(messageOutput); break;
                 case "LEAVE": removeLobbyUser(messageOutput); break;
+                case "SET_READY": updateReadyUI(messageOutput.userId, "green"); break;
+                case "CANCEL_READY": updateReadyUI(messageOutput.userId, "red"); break;
+                default: drawBattleMovement(messageOutput); break;
             }
         }
 
@@ -186,6 +189,7 @@
             let status = document.createElement("div")
             status.style.background = "red"
             status.style.flexGrow = "1"
+            status.classList.add("ready-status")
 
             outer.append(name)
             outer.append(status)
@@ -235,16 +239,99 @@
 
         function update_hero_stats() {
             let heroId = Number(document.querySelector("#hero-select").value)
+            update_songs(heroId)
             let hero = heroList.find(h => h.id === heroId)
             document.querySelector("#health").innerHTML = hero.health
         }
 
-        function update_songs() {
-            let songId = document.querySelector("#song-select").value
-            let songs = []
-            fetch("/")
+        let songs = []
 
+        function update_songs(heroId) {
+            let songSelector = document.querySelector("#song-select")
+
+            fetch("/characters/" + heroId + "/songs", {
+                method: "GET"
+            }).then(body => body.json()).then(data => {
+                for (let song of data) {
+                    songs = []
+                    songs.push({ id: song.id, name: song.name, damage: song.damage})
+                }
+                let newChildren = []
+                for (let song of songs) {
+                    let option = document.createElement("option")
+                    option.value = song.id
+                    option.innerHTML = song.name
+                    newChildren.push(option)
+                }
+                songSelector.replaceChildren(...newChildren)
+                update_song_damage()
+            })
         }
+
+        function update_song_damage() {
+            let songId = Number(document.querySelector("#song-select").value)
+            let song = songs.find(s => s.id === songId)
+            document.querySelector("#song-damage").innerHTML = song.damage
+        }
+
+        function setReadyState() {
+            let characterId = Number(document.querySelector("#hero-select").value)
+            let songId = Number(document.querySelector("#song-select").value)
+            let effectId = Number(document.querySelector("#effect-select").value)
+            let request = { "commandType": "SET_READY", "characterId": characterId, "songId": songId, "effectId": effectId }
+
+            fetch("/war/${lobbyId}/ready/set", {
+                method: "POST",
+                body: JSON.stringify(request),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+        }
+
+        function cancelReadyState() {
+            let request = { commandType: "CANCEL_READY" }
+
+            fetch("/war/${lobbyId}/ready/cancel", {
+                method: "POST",
+                body: JSON.stringify(request),
+            })
+        }
+
+        let isReady = false
+        function resolveReadyState(source) {
+            if (isReady) {
+                cancelReadyState()
+                source.innerHTML = "Ready"
+                isReady = false
+            } else {
+                setReadyState()
+                source.innerHTML = "Cancel"
+                isReady = true
+            }
+        }
+
+        function updateReadyUI(uid, color) {
+            let block = document.querySelector("#lobby-user-" + uid + " .ready-status")
+            block.style.background = color
+        }
+
+        function beginFight() {
+            let locationId = 1
+            fetch("/war/${lobbyId}/start?locationId=" + locationId, {
+                method: "POST"
+            }).then(res => {
+                if (res.status === 400) {
+                    alert("Not all players are ready")
+                }
+                console.log("Battle conducted")
+            })
+        }
+
+        function drawBattleMovement(moves) {
+            console.log(moves)
+        }
+
     </script>
 </head>
 <body onload="connect()">
@@ -269,7 +356,7 @@
                         <div style="background: white; line-height: 2em; padding: 0 4px; flex-grow: 7">
                             ${lobbyUs.username}
                         </div>
-                        <div style="background: ${lobbyUs.ready?then('green', 'red')}; flex-grow: 1"></div>
+                        <div class="ready-status" style="background: ${lobbyUs.ready?then('green', 'red')}; flex-grow: 1"></div>
                     </div>
                 </#list>
             </div>
@@ -319,25 +406,28 @@
                     </div>
                 </div>
 
-<#--                <div class="user-block" style="background: white">-->
-<#--                    <div>-->
-<#--                        <label for="song-select">Select song:</label>-->
-<#--                        <select name="song-select" id="song-select">-->
-<#--                            <#list songs as song>-->
-<#--                                <option value="${song.id}">${song.name}</option>-->
-<#--                            </#list>-->
-<#--                        </select>-->
-<#--                        <#if songs?size gt 0>-->
-<#--                            <div>Damage: <span id="song-damage">${songs[0].damage}</span></div>-->
-<#--                        </#if>-->
-<#--                    </div>-->
-<#--                </div>-->
+                <div class="user-block" style="background: white">
+                    <div>
+                        <label for="song-select">Select song:</label>
+                        <select name="song-select" id="song-select" onchange="update_song_damage()">
+                            <#list songs as song>
+                                <option value="${song.id}">${song.name}</option>
+                            </#list>
+                        </select>
+                        <#if songs?size gt 0>
+                            <div>Damage: <span id="song-damage">${songs[0].damage}</span></div>
+                        </#if>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <div style="display: flex; justify-content: center">
-        <button type="button">Begin</button>
+        <button type="button" onclick="resolveReadyState(this)" >Ready</button>
         <button type="button" onclick="leaveLobby('${lobbyId}')" >Leave</button>
+        <#if isHost>
+            <button onclick="beginFight()">Begin fight</button>
+        </#if>
     </div>
 </body>
 </html>

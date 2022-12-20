@@ -18,10 +18,16 @@ public class Song {
     @Column(name = "experience_level", nullable = false)
     private Integer experienceLevel;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "hero_id", nullable = false)
-    private Hero hero;
+    @Column(name = "damage", nullable = false)
+    private Integer damage;
+
+    public Integer getDamage() {
+        return damage;
+    }
+
+    public void setDamage(Integer damage) {
+        this.damage = damage;
+    }
 
     public Integer getId() {
         return id;
@@ -45,14 +51,6 @@ public class Song {
 
     public void setExperienceLevel(Integer experienceLevel) {
         this.experienceLevel = experienceLevel;
-    }
-
-    public Hero getHero() {
-        return hero;
-    }
-
-    public void setHero(Hero hero) {
-        this.hero = hero;
     }
 
 }

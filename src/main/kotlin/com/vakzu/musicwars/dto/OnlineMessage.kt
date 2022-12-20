@@ -1,4 +1,4 @@
-package com.vakzu.musicwars
+package com.vakzu.musicwars.dto
 
 import com.vakzu.musicwars.dto.websocket.CommandType
 

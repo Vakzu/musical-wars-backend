@@ -1,6 +1,6 @@
 package com.vakzu.musicwars.controllers
 
-import com.vakzu.musicwars.OnlineMessage
+import com.vakzu.musicwars.dto.OnlineMessage
 import com.vakzu.musicwars.config.WebSocketConfig
 import com.vakzu.musicwars.dto.websocket.CommandType
 import com.vakzu.musicwars.dto.websocket.InviteMessage

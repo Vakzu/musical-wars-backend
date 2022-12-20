@@ -5,7 +5,7 @@ DECLARE
     hero_price integer;
     dealId integer;
 BEGIN
-    SELECT price INTO hero_price FROM hero WHERE id = NEW.id;
+    SELECT price INTO hero_price FROM hero WHERE id = NEW.hero_id;
 
     INSERT INTO "deal" (user_id, price)
     VALUES (NEW.user_id, hero_price)
@@ -55,7 +55,7 @@ BEGIN
         RETURN NEW;
     END IF;
     
-    SELECT price INTO effect_price FROM effect WHERE id = NEW.id;
+    SELECT price INTO effect_price FROM effect WHERE id = NEW.effect_id;
 
     INSERT INTO "deal" (user_id, price)
     VALUES (NEW.user_id, effect_price)
@@ -67,7 +67,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
+--
 CREATE TRIGGER log_paying_for_effect BEFORE INSERT OR UPDATE ON inventory
     FOR EACH ROW EXECUTE FUNCTION pay_for_effect_log();
 
@@ -123,16 +123,58 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_statistics(userId int) RETURNS TABLE
+                                                              (
+                                                                  gamesCount   int,
+                                                                  winsCount    int,
+                                                                  averagePrice float,
+                                                                  lastGameDate timestamp with time zone
+                                                              ) AS
+$$DECLARE
+    BEGIN
+    SELECT count(*) INTO gamesCount FROM fight_participant
+                             JOIN character c on fight_participant.character_id = c.id
+                             JOIN "user" u on c.user_id = u.id
+    WHERE u.id = userId;
+
+    SELECT COUNT(*) INTO winsCount FROM fight_participant
+                             JOIN character c on fight_participant.character_id = c.id
+                             JOIN "user" u on c.user_id = u.id
+    WHERE u.id = userId
+      AND fight_participant.position = 1;
+
+    SELECT avg(fight_participant.position) INTO averagePrice FROM fight_participant
+                                                    JOIN character c on fight_participant.character_id = c.id
+                                                    JOIN "user" u on c.user_id = u.id
+    WHERE u.id = userId
+      AND fight_participant.position = 1;
+
+    SELECT COUNT(*) INTO lastGameDate FROM fight_participant
+                             JOIN character c on fight_participant.character_id = c.id
+                             JOIN "user" u on c.user_id = u.id
+                             JOIN fight f on fight_participant.fight_id = f.id
+    WHERE u.id = userId
+      AND f.start_time
+    LIMIT 1;
+
+--     RETURN NEXT (games_count, wins_count, average_price, last_game_date);
+    RETURN NEXT;
+end;
+$$ LANGUAGE plpgsql;
+
 CREATE TYPE participant_info AS
 (
     "id"             integer,
     "user_id"        integer,
     "participant_id" integer,
     "health"         integer,
-    "damage"         bigint,
+    "damage"         integer,
     "stamina"        integer,
     "luck"           integer
 );
+
+ALTER TYPE participant_info
+    ALTER ATTRIBUTE "damage" TYPE integer;
 
 -- Возвращает основную информацию по герою(id, id игрока, id_в_драке, здоровье, урон, выносливость, удача)
 CREATE OR REPLACE FUNCTION get_base_character_info(characterId integer, songId integer) RETURNS SETOF participant_info AS
@@ -148,7 +190,8 @@ BEGIN
                  JOIN "song" S on H.id = S.hero_id
         WHERE "character".id = characterId
           AND S.id = songId
-        GROUP BY "character".id, H.health;
+        GROUP BY "character".id, H.health, S.damage;
+    RETURN;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -261,6 +304,7 @@ DECLARE
     alive_ids integer[] = characters;
     fightId integer;
     moveNumber integer = 0;
+    curDamage integer = 0;
 BEGIN
     INSERT INTO "fight" (start_time, location_id) VALUES (now(), location) RETURNING "fight".id INTO fightId;
 
@@ -310,14 +354,29 @@ BEGIN
                 RAISE NOTICE 'p = %', p;
                 RAISE NOTICE 'character_info: %', character_info;
 
-                FOREACH y IN ARRAY character_info
+                FOR kc IN 1..array_length(character_info, 1)
                 LOOP
+                    y = character_info[kc];
+
                     IF (y.id = alive_ids[p]) THEN
                         RAISE NOTICE 'victim is %', y.id;
-                        INSERT INTO "fight_moves" (move_number, fight_id, attacker_id, victim_id, damage)
-                        VALUES (moveNumber, fightId, x.participant_id, y.participant_id, x.damage);
 
-                        y.health = y.health - x.damage;
+                        IF (random() < x.luck / 20) THEN
+                            curDamage = 0;
+                        ELSE
+                            curDamage = x.damage;
+                        END IF;
+
+                        RAISE NOTICE 'victim is damaged by: %', curDamage;
+
+                        INSERT INTO "fight_moves" (move_number, fight_id, attacker_id, victim_id, damage)
+                        VALUES (moveNumber, fightId, x.participant_id, y.participant_id, curDamage);
+
+                        y.health = y.health - curDamage;
+                        character_info[kc] = y;
+
+                        RAISE NOTICE 'victim health now is: %', y.health;
+                        RAISE NOTICE 'character_info: %', character_info;
 
                         IF (y.health <= 0) THEN
                             alive_amount = alive_amount - 1;
@@ -343,9 +402,10 @@ BEGIN
         gold_gained = 30 * total_players / 2
     WHERE id = x.participant_id;
 
-    RETURN QUERY (SELECT fight_moves.fight_id, move_number, AFP.character_id, VFP.character_id, damage FROM fight_moves
+    RETURN QUERY (SELECT move_number, fight_moves.fight_id, AFP.character_id, VFP.character_id, damage FROM fight_moves
                 JOIN "fight_participant" AFP on fight_moves.attacker_id = AFP.id
                 JOIN "fight_participant" VFP on fight_moves.victim_id = VFP.id
-                WHERE fight_moves.fight_id = fightId);
+                WHERE fight_moves.fight_id = fightId
+                ORDER BY move_number);
 END;
 $$ LANGUAGE 'plpgsql';

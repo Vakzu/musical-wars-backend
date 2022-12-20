@@ -1,59 +1,49 @@
 package com.vakzu.musicwars.entities;
 
 import javax.persistence.*;
+import java.util.Collection;
 
-@Entity
-@Table(name = "fight_moves")
 public class FightMove {
-    @EmbeddedId
-    private FightMoveId id;
+    private Integer fightId;
 
-    @MapsId("fightId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fight_id", nullable = false)
-    private Fight fight;
+    private Integer moveNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "attacker_id", nullable = false)
-    private FightParticipant attacker;
+    private Integer attackerId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "victim_id")
-    private FightParticipant victim;
+    private Integer victimId;
 
-    @Column(name = "damage", nullable = false)
     private Integer damage;
 
-    public FightMoveId getId() {
-        return id;
+    public Integer getFightId() {
+        return fightId;
     }
 
-    public void setId(FightMoveId id) {
-        this.id = id;
+    public void setFightId(Integer fightId) {
+        this.fightId = fightId;
     }
 
-    public Fight getFight() {
-        return fight;
+    public Integer getMoveNumber() {
+        return moveNumber;
     }
 
-    public void setFight(Fight fight) {
-        this.fight = fight;
+    public void setMoveNumber(Integer moveNumber) {
+        this.moveNumber = moveNumber;
     }
 
-    public FightParticipant getAttacker() {
-        return attacker;
+    public Integer getAttackerId() {
+        return attackerId;
     }
 
-    public void setAttacker(FightParticipant attacker) {
-        this.attacker = attacker;
+    public void setAttackerId(Integer attackerId) {
+        this.attackerId = attackerId;
     }
 
-    public FightParticipant getVictim() {
-        return victim;
+    public Integer getVictimId() {
+        return victimId;
     }
 
-    public void setVictim(FightParticipant victim) {
-        this.victim = victim;
+    public void setVictimId(Integer victimId) {
+        this.victimId = victimId;
     }
 
     public Integer getDamage() {

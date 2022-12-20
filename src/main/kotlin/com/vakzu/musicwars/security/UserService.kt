@@ -47,4 +47,6 @@ class UserService(
     }
 
     fun findByName(username: String): User? = userRepository.findByName(username)
+
+    fun getUserStatistics(userId: Int) = userRepository.getUserStatistics(userId)
 }

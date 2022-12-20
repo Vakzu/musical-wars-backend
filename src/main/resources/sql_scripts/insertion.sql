@@ -42,16 +42,7 @@ VALUES ('Petya', true, '213192873123978'),
        ('Grenka', true, '9871203791273'),
        ('Ohmy', true, '1231928030128398213'),
        ('Dmittrey', false, '012983091823081023'),
-       ('ohohoh', false, '09182309120938091283'),
-       ('guyscommon', false, '120938091283081238'),
-       ('stopthis', false, '1298737123789123'),
-       ('mymind', false, '891273dqy92dy8921e'),
-       ('isfull', false, '1298uydh9u2h18e091e'),
-       ('imdone', false, '219d8u2198dhj8921odh'),
-       ('kjkjkjkj', false, 'd912hd989hj18d'),
-       ('somename1', true, '12d91hd98128d9n1d'),
-       ('somename2', true, 'dn1929dn1928d8n12d'),
-       ('anothername', true, 'd129dn812d8h1280jd0');
+       ('ohohoh', false, '09182309120938091283');
 
 INSERT INTO "character" ("experience", "hero_id", "user_id")
 VALUES (0, 6, 1),

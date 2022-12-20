@@ -20,7 +20,7 @@ public class User {
     @Column(name = "balance", nullable = false)
     private Integer balance = 1000;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password_hash", nullable = false)
     private String password;
 
     public Integer getId() {
